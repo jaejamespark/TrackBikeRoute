@@ -17,12 +17,14 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
+import java.text.DateFormat;
+import java.util.Date;
+
 
 /**
  * Created by cycas on 5/10/16.
  */
-public class CurrentLocation extends FragmentActivity implements
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener{
+public class CurrentLocation extends MapsActivity implements LocationListener{
 
     /**
      * * Update interval in miliseconds. Inexact.
@@ -35,12 +37,6 @@ public class CurrentLocation extends FragmentActivity implements
     protected static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS=UPDATE_INTERVAL_IN_MILLISECONDS/2;
 
     /**
-     * Provide the entry point to Google Play Services
-     */
-
-    protected GoogleApiClient mGoogleApiClient;
-
-    /**
      * Provide parameters for request to the FusedLocationProvider API
      */
     protected LocationRequest mLocationRequest;
@@ -50,35 +46,42 @@ public class CurrentLocation extends FragmentActivity implements
      */
     protected Location mLocation;
 
-
+    protected String mLastUpdateTime;
 
     public void getCurrentLocation(){
 
 
-        buildGoogleApiClient();
+        //createLocationRequest(); This was called on OnCreate();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            //DO CHECK PERMISSION
 
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                    || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                //DO OP WITH LOCATION SERVICE
 
-
+                if (mLocation == null) {
+                    mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+                    mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
+                    updateUI();
+                }
+            }
+        }
+        startLocationUpdates();
     }
 
 
 
     /**
-     * Builds a GoogleApiClient. Uses the {@code #addApi} method to request the
-     * LocationServices API.
+     * Updates the latitude, the longitude, and the last location time in the UI.
      */
-    protected synchronized void buildGoogleApiClient() {
-        //Log.i(TAG, "Building GoogleApiClient");
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-
-        createLocationRequest();
-        startLocationUpdates();
-
+    private void updateUI() {
+        if (mCurrentLocation != null) {
+            mLatitudeTextView.setText(String.valueOf(mLocation.getLatitude()));
+            mLongitudeTextView.setText(String.valueOf(mLocation.getLongitude()));
+            mLastUpdateTimeTextView.setText(mLastUpdateTime);
         }
+    }
+
 
 
 
@@ -136,65 +139,22 @@ public class CurrentLocation extends FragmentActivity implements
         }
     }
 
+    /**
+     * Removes location updates from the FusedLocationApi.
+     */
+    protected void stopLocationUpdates() {
+        // It is a good practice to remove location requests when the activity is in a paused or
+        // stopped state. Doing so helps battery performance and is especially
+        // recommended in applications that request frequent location updates.
 
-
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        // Within {@code onPause()}, we pause location updates, but leave the
-        // connection to GoogleApiClient intact.  Here, we resume receiving
-        // location updates if the user has requested them.
-
-
-        //if (mGoogleApiClient.isConnected() && mRequestingLocationUpdates) {
-        if (mGoogleApiClient.isConnected()){
-            startLocationUpdates();
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        // Stop location updates to save battery, but don't disconnect the GoogleApiClient object.
-        if (mGoogleApiClient.isConnected()) {
-            //stopLocationUpdates();
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        mGoogleApiClient.disconnect();
-
-        super.onStop();
+        // The final argument to {@code requestLocationUpdates()} is a LocationListener
+        // (http://developer.android.com/reference/com/google/android/gms/location/LocationListener.html).
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
 
 
     @Override
-    public void onLocationChanged(Location location){
+    public void onLocationChanged(Location location) {
 
     }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle){
-
-    }
-
-    @Override
-    public void onConnectionSuspended(int i){
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult){
-
-    }
-
-
 }

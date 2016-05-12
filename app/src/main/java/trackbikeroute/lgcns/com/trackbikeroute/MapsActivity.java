@@ -10,6 +10,8 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -24,6 +26,11 @@ import com.google.android.gms.maps.model.MarkerOptions;
 public class MapsActivity extends FragmentActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, OnMapReadyCallback {
 
     private GoogleMap mMap;
+    //protected Location mLocation;
+
+    protected TextView mLastUpdateTimeTextView;
+    protected TextView mLatitudeTextView;
+    protected TextView mLongitudeTextView;
 
     /**
      * Provide the entry point to Google Play Services
@@ -40,11 +47,13 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        mLatitudeTextView = (TextView) findViewById(R.id.latitude_text);
+        mLongitudeTextView = (TextView) findViewById(R.id.longitude_text);
+        mLastUpdateTimeTextView = (TextView) findViewById(R.id.last_update_time_text);
+
 
         buildGoogleApiClient();
-
-
-
+        mCurrentLocation.createLocationRequest();
         }
 
 
@@ -54,7 +63,7 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
     protected void onStart() {
         super.onStart();
         mGoogleApiClient.connect();
-        mCurrentLocation.getCurrentLocation();
+
     }
 
     @Override
@@ -68,6 +77,7 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
         //if (mGoogleApiClient.isConnected() && mRequestingLocationUpdates) {
         if (mGoogleApiClient.isConnected()){
             //startLocationUpdates();
+            mCurrentLocation.startLocationUpdates();
         }
     }
 
@@ -76,7 +86,7 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
         super.onPause();
         // Stop location updates to save battery, but don't disconnect the GoogleApiClient object.
         if (mGoogleApiClient.isConnected()) {
-            //stopLocationUpdates();
+            mCurrentLocation.stopLocationUpdates();
         }
     }
 
@@ -127,6 +137,7 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
 
     @Override
     public void onConnected(@Nullable Bundle bundle){
+       mCurrentLocation.getCurrentLocation();
 
     }
 
@@ -136,8 +147,10 @@ public class MapsActivity extends FragmentActivity implements GoogleApiClient.Co
     }
 
     @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult){
-
+    public void onConnectionFailed(ConnectionResult result) {
+        // Refer to the javadoc for ConnectionResult to see what error codes might be returned in
+        // onConnectionFailed.
+        //Log.i(TAG, "Connection failed: ConnectionResult.getErrorCode() = " + result.getErrorCode());
     }
 
 }
